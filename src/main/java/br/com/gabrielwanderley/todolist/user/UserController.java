@@ -12,7 +12,7 @@ public class UserController {
     @PostMapping("/")
     public void create(@RequestBody UserModel userModel) {
         // @RequestBody -> para indicar ao spring que o argumento faz parte do body
-        System.out.println(userModel.name);
+        System.out.println(userModel.getUsername());
 
     }
 }
