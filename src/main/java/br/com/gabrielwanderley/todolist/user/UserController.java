@@ -16,6 +16,12 @@ public class UserController {
     @PostMapping("/")
     public UserModel create(@RequestBody UserModel userModel) {
         // @RequestBody -> para indicar ao spring que o argumento faz parte do body
+        var user = this.userRepository.findByUsername(userModel.getUsername());
+
+        if (user != null) {
+            System.out.println("Usuário já existente");
+            return null;
+        }
         var userCreated = this.userRepository.save(userModel);
         return userCreated;
     }
