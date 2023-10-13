@@ -2,22 +2,63 @@ package br.com.gabrielwanderley.todolist.filter;
 
 import java.io.IOException;
 
-import jakarta.servlet.Filter;
+import java.util.Base64;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import br.com.gabrielwanderley.todolist.user.IUserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 
-public class FilterTaskAuth implements Filter {
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+@Component
+public class FilterTaskAuth extends OncePerRequestFilter {
+
+    @Autowired
+    private IUserRepository userRepository;
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-        // Executar alguma acao
+        // Pegar a autenticação (usuario e senha)
+        var authorization = request.getHeader("Authorization");
 
-        System.out.println("Chegou no filtro! ");
-        chain.doFilter(request, response);
+        var authEncoded = authorization.substring("Basic".length()).trim(); // "recortar" a parte Basic e remover esse
+                                                                            // // espaço para se ter // somente o código
+
+        byte[] authDecode = Base64.getDecoder().decode(authEncoded);
+
+        var authString = new String(authDecode);
+
+        // ["usuario","senha"]
+        String[] credentials = authString.split(":");
+        String username = credentials[0];
+        String password = credentials[1];
+
+        System.out.println("Authorization");
+        System.out.println(authString);
+        // Validar usuário
+        var user = this.userRepository.findByUsername(username);
+        if (user == null) {
+            response.sendError(401);
+        } else {
+            // Validar senha
+            var passwordVerify = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
+            if (passwordVerify.verified) {
+                filterChain.doFilter(request, response);
+
+            } else {
+                response.sendError(401);
+            }
+            // Segue
+
+        }
 
     }
 
